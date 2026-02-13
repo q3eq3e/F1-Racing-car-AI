@@ -20,6 +20,7 @@ class Track:
             lap = session.laps.pick_fastest()
         else:
             lap = session.laps.pick_drivers(driver).pick_fastest()
+        track_angle = session.get_circuit_info().rotation / 180 * np.pi
 
         # removing last point bc is crossing finish line -- no longer needed
         # steps are to create more smooth track without sharp edges especially on the inside -- no longer needed
@@ -27,12 +28,16 @@ class Track:
         y = lap.telemetry["Y"][::step]  # values for y-axis
         points_line = list(zip(x, y))
         points_line.append(points_line[0])  # closing a circuit loop
+        points_line = rotate(points_line, angle=track_angle)  # rotating for better view
         # outer, inner = get_borders(x, y, width)
         # self.layout: Polygon = Polygon(shell=outer, holes=[inner])
         # self.outer: tuple = outer
         # self.inner: tuple = inner
 
         self.layout: Polygon = LineString(points_line).buffer(width)
+        if len(self.layout.interiors) != 1:
+            raise ValueError("Invalid width (present shortcuts)")
+
         self.finish_line = get_finish_line(self.layout, points_line[0])
         self.starting_point = self.finish_line.centroid
         self.width = width
@@ -83,7 +88,7 @@ if __name__ == "__main__":
     import shapely
     from shapely.geometry import Point
 
-    track = Track("Austria", width=200)
+    track = Track("Austria", width=120)
 
     print(track.layout.is_valid)
     print(

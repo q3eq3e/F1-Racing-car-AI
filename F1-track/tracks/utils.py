@@ -5,6 +5,13 @@ import math
 import numpy as np
 
 
+def rotate(xy, angle):
+    rot_mat = np.array(
+        [[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]
+    )
+    return np.matmul(xy, rot_mat)
+
+
 def get_finish_line(layout, finish_point):
     """Finds closest points on the inside and outside edges of the track layout to specific point and creates a line"""
     finish_point = Point(*finish_point)
