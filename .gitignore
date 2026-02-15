@@ -4,6 +4,11 @@
 mygraph.png
 *.png
 
+.vscode*
+
+tests/temp/*
+!tests/temp/.gitkeep
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

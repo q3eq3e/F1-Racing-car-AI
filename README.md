@@ -27,7 +27,7 @@ PRs may require accompanying PRs in [the documentation repo](https://github.com/
 To install your new environment, run the following commands:
 
 ```{shell}
-cd F1-track
+cd F1_track
 pip install -e .
 ```
 
