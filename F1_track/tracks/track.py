@@ -7,6 +7,8 @@ import shapely
 import matplotlib.pyplot as plt
 import pickle
 
+# TODO: add checkpoints to help with making whole lap, not moving only around finish line
+
 
 class Track:
     def __init__(
@@ -53,16 +55,16 @@ class Track:
         #     points_line[1][1] - points_line[0][1],
         # )  # vector more or less perpendicular to finish_line
 
-    @staticmethod
-    def load(filename: str) -> "Track":
-        with open(f"F1_track/tracks/saved/{filename}.pkl", "rb") as fp:
-            return pickle.load(fp)
+    def contains(self, point: Point | Tuple[float, float]) -> bool:
+        return self.layout.contains(Point(point))
 
-    def save(self: "Track", filename: str = None) -> None:
-        if filename is None:
-            filename = f"{self.name}.pkl"
-        with open(f"F1_track/tracks/saved/{filename}", "wb") as fp:
-            pickle.dump(self, fp, pickle.HIGHEST_PROTOCOL)
+    def valid_move(
+        self,
+        prev_point: Point | Tuple[float, float],
+        next_point: Point | Tuple[float, float],
+    ) -> bool:
+        """check if whole line is within track limits"""
+        return self.layout.contains(LineString([prev_point, next_point]))
 
     def cross_finish_line(
         self,
@@ -88,14 +90,6 @@ class Track:
             self.finish_line, LineString([prev_point, next_point])
         ) and self.valid_move(prev_point, next_point)
 
-    def valid_move(
-        self,
-        prev_point: Point | Tuple[float, float],
-        next_point: Point | Tuple[float, float],
-    ) -> bool:
-        """check if whole line is within track limits"""
-        return self.layout.contains(LineString([prev_point, next_point]))
-
     def plot(self):
         fig, ax = plt.subplots()
         ax.set_facecolor("lightgreen")
@@ -113,6 +107,17 @@ class Track:
 
         ax.set_aspect("equal")
         return fig, ax
+
+    @staticmethod
+    def load(filename: str) -> "Track":
+        with open(f"F1_track/tracks/saved/{filename}.pkl", "rb") as fp:
+            return pickle.load(fp)
+
+    def save(self: "Track", filename: str = None) -> None:
+        if filename is None:
+            filename = f"{self.name}.pkl"
+        with open(f"F1_track/tracks/saved/{filename}", "wb") as fp:
+            pickle.dump(self, fp, pickle.HIGHEST_PROTOCOL)
 
 
 def get_all_tracks_by_year(year) -> List[Track]:

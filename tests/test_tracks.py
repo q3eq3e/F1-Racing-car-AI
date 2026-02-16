@@ -100,11 +100,11 @@ def test_cross_finish():
     from shapely import LineString
 
     track = Track("Austrian")
-    true_starting_point = list(zip(*track.finish_line.xy))[0]
+    finish_line_edge = list(zip(*track.finish_line.xy))[0]
     assert track.cross_finish_line((2000, -1000), (-1000, -2000)) == True
     assert track.cross_finish_line((-1000, -2000), (2000, -1000)) == True
-    assert track.cross_finish_line((2000, -1000), true_starting_point) == True
-    assert track.cross_finish_line(true_starting_point, (-1000, -2000)) == False
+    assert track.cross_finish_line((2000, -1000), finish_line_edge) == True
+    assert track.cross_finish_line(finish_line_edge, (-1000, -2000)) == False
     assert track.cross_finish_line((2000, 0), (0, 0)) == False
     assert track.cross_finish_line(*list(zip(*track.finish_line.xy))) == False
     assert track.cross_finish_line(*reversed(list(zip(*track.finish_line.xy)))) == False
@@ -113,3 +113,13 @@ def test_cross_finish():
     point_x_1079 = Point(1079, -1409)
     point_x_1080 = Point(1080, -1409)
     assert track.cross_finish_line(point_x_1079, point_x_1080) == True
+
+
+def test_contains():
+    track = Track("Austrian")
+    finish_line_edge = list(zip(*track.finish_line.xy))[0]
+    assert track.contains((2000, -1000)) == True
+    assert track.contains(Point(-1000, -2000)) == True
+    assert track.contains(finish_line_edge) == True
+    assert track.contains((0, 0)) == False
+    assert track.contains(Point(2000, 0)) == False
