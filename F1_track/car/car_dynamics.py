@@ -9,8 +9,8 @@ class CarDynamics:
         "distance_axis_f": 1.6,
         "distance_axis_r": 2.0,
         "wheelbase": 3.6,
-        "ltr_stiff_f": 80000,
-        "ltr_stiff_r": 90000,
+        "ltr_stiff_f": 270000,
+        "ltr_stiff_r": 270000,
         "friction": 1.8,
         "rolling_friction": 0.01,
         "air_density": 1.225,
@@ -18,7 +18,7 @@ class CarDynamics:
         "drag": 0.9,
         "dwnf_f": 2.0,
         "dwnf_r": 2.5,
-        "F_max": 15000,
+        "F_max": 9000,
         "F_brake_max": 20000,
         "brake_bias": 0.6,
     }
@@ -77,12 +77,30 @@ class CarDynamics:
         self.vy = 0.0
         self.va = 0.0  # angular velocity (yaw rate)
         self.ax = 0.0
+        self.sliding_front = False
+        self.sliding_rear = False
 
         self.g = 9.81
 
-    def step(self, throttle, brake, delta, dt):
-        sliding_front = False
-        sliding_rear = False
+    @property
+    def state(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "vx": self.vx,
+            "vy": self.vy,
+            "yaw": self.yaw,
+            "yaw_rate": self.va,
+            "ax": self.ax,
+            "front_slide": self.sliding_front,
+            "rear_slide": self.sliding_rear,
+        }
+
+    def step(self, throttle, brake, delta, dt=0.05):
+        if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(delta) > 1:
+            raise ValueError("Input values out of range")
+        delta *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
+
         # --- total speed ---
         v = np.sqrt(self.vx**2 + self.vy**2)
 
@@ -109,8 +127,15 @@ class CarDynamics:
         vyr = self.vy - self.L_r * self.va
 
         # --- slip angles ---
-        alpha_f = delta - np.arctan2(vyf, vxf)
-        alpha_r = -np.arctan2(vyr, vxr)
+        # --- turning in place correction ---
+        v_total = np.sqrt(self.vx**2 + self.vy**2)
+        v_eps = 0.01
+        if v_total < v_eps:
+            alpha_f = 0.0
+            alpha_r = 0.0
+        else:
+            alpha_f = delta - np.arctan2(vyf, vxf)
+            alpha_r = -np.arctan2(vyr, vxr)
 
         # --- lateral forces (linear) ---
         Fy_f = self.Ca_f * alpha_f
@@ -121,23 +146,34 @@ class CarDynamics:
         Fx_f = -brake * self.brake_bias * self.F_brake_max
         Fx_r += -brake * (1 - self.brake_bias) * self.F_brake_max
 
+        # --- braking is not throttle backwards correction ---
+        v_eps = 0.01
+        if abs(self.vx) < v_eps and Fx_f + Fx_r < 0:
+            Fx_f = 0.0
+            Fx_r = 0.0
+            self.vx = 0.0
+
         # --- front grip limit ---
         Ff_total = np.sqrt(Fx_f**2 + Fy_f**2)
         Ff_limit = self.mu * Fz_f
         if Ff_total > Ff_limit:
-            sliding_front = True
+            self.sliding_front = True
             scale = Ff_limit / Ff_total
             Fx_f *= scale
             Fy_f *= scale
+        else:
+            self.sliding_front = False
 
         # --- rear grip limit ---
         Fr_total = np.sqrt(Fx_r**2 + Fy_r**2)
         Fr_limit = self.mu * Fz_r
         if Fr_total > Fr_limit:
-            sliding_rear = True
+            self.sliding_rear = True
             scale = Fr_limit / Fr_total
             Fx_r *= scale
             Fy_r *= scale
+        else:
+            self.sliding_rear = False
 
         # --- rolling friction ---
         F_roll = self.roll_fr * (Fz_f + Fz_r)
@@ -154,7 +190,7 @@ class CarDynamics:
         self.vy += dvy * dt
         self.va += dva * dt
 
-        self.yaw += self.va * dt
+        self.yaw = np.fmod(self.yaw + self.va * dt, 2 * np.pi)
 
         dx = self.vx * np.cos(self.yaw) - self.vy * np.sin(self.yaw)
         dy = self.vx * np.sin(self.yaw) + self.vy * np.cos(self.yaw)
@@ -163,19 +199,9 @@ class CarDynamics:
         self.y += dy * dt
 
         # longitudal acceleration (always one step behind because of feedback in model between ax and Fz)
-        self.ax = (Fx_f + Fx_r - F_drag) / self.mass
+        self.ax = (Fx_f + Fx_r - F_drag - F_roll) / self.mass
 
-        return {
-            "x": self.x,
-            "y": self.y,
-            "vx": self.vx,
-            "vy": self.vy,
-            "yaw": self.yaw,
-            "yaw_rate": self.va,
-            "ax": self.ax,
-            "front_slide": sliding_front,
-            "rear_slide": sliding_rear,
-        }
+        return self.state
 
     @property
     def max_speed(self):
@@ -210,3 +236,65 @@ class CarDynamics:
                     )
                 )
             )
+
+    @property
+    def max_speed_kmh(self):
+        return self.max_speed * 3.6
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    car = CarDynamics()
+    print("max_speed [km/h] =", car.max_speed_kmh)
+    ys = []
+    vys = []
+    yaws = []
+    yaw_rates = []
+    f_slips = []
+    r_slips = []
+    timestep = 0.02
+    steps = 100
+    for _ in range(1000):  # speed up
+        car.step(1, 0, 0)
+
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    car.step(0, 0, 1, dt=timestep)
+    for _ in range(steps):
+        ys.append(car.state["y"] / 10)
+        vys.append(car.state["vy"])
+        yaws.append(car.state["yaw"] * 10)
+        yaw_rates.append(car.state["yaw_rate"])
+        f_slips.append(20 * car.state["front_slide"])
+        r_slips.append(20 * car.state["rear_slide"])
+        car.step(0, 0.1, -0.1, dt=timestep)
+
+    t = np.arange(0, steps * timestep, timestep) + timestep
+
+    plt.plot(t, ys, label="y")
+    plt.plot(t, vys, label="v")
+    plt.plot(t, yaws, label="yaw")
+    plt.plot(t, yaw_rates, label="yaw_rate")
+    plt.plot(t, f_slips, label="f")
+    plt.plot(t, r_slips, label="r")
+
+    # Add labels and title
+    plt.xlabel("X Values")
+    plt.ylabel("Y Values")
+    plt.title("Line Plot with Three Value Series")
+
+    # Show legend
+    plt.legend()
+
+    # Show grid
+    plt.grid(True)
+
+    # Display the plot
+    plt.savefig("car.png")
+    plt.show()
+    plt.close()
