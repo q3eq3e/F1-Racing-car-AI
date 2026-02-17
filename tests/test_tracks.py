@@ -123,3 +123,19 @@ def test_contains():
     assert track.contains(finish_line_edge) == True
     assert track.contains((0, 0)) == False
     assert track.contains(Point(2000, 0)) == False
+
+
+def test_distance():
+    track = Track("Austrian")
+    accepted_precision = track.length * 0.0001
+    start_point = track.starting_point
+    assert track.get_distance(start_point) < accepted_precision
+    point_2 = (-2000, -2000)
+    dist = track.starting_point.distance(Point(point_2))
+    assert abs(track.get_distance(point_2) - dist) < accepted_precision
+    point_3 = Point(2000, -1000)
+    dist = track.length - track.starting_point.distance(point_3)
+    assert abs(track.get_distance(point_3) - dist) < accepted_precision
+
+    with pytest.raises(ValueError):
+        track.get_distance((0, 0))

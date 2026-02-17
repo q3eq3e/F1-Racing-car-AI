@@ -33,7 +33,7 @@ class Track:
         y = lap.telemetry["Y"][::step]  # values for y-axis
         points_line = list(zip(x, y))
         points_line.append(points_line[0])  # closing a circuit loop
-        points_line = utils.rotate(
+        self._points_line = utils.rotate(
             points_line, angle=track_angle
         )  # rotating for better view
 
@@ -41,13 +41,13 @@ class Track:
         if self.name == "Japanese":
             raise ValueError("Not able to create Japanese track")
 
-        self.length = shapely.length(LineString(points_line))
+        self.length = shapely.length(LineString(self._points_line))
 
-        self.layout: Polygon = LineString(points_line).buffer(width / 2)
+        self.layout: Polygon = LineString(self._points_line).buffer(width / 2)
         if len(self.layout.interiors) != 1:
             raise ValueError("Invalid width (present shortcuts)")
 
-        self.finish_line = utils.get_finish_line(self.layout, points_line[0])
+        self.finish_line = utils.get_finish_line(self.layout, self._points_line[0])
         self.starting_point = self.finish_line.centroid
         self.width = width
         # self._start_direction = (
@@ -57,6 +57,14 @@ class Track:
 
     def contains(self, point: Point | Tuple[float, float]) -> bool:
         return self.layout.contains(Point(point))
+
+    def get_distance(self, point: Point | Tuple[float, float]) -> float:
+        """Returns distance of a point through the track line"""
+        point = Point(point)
+        if not self.contains(point):
+            raise ValueError("Point does not belong to the track")
+
+        return LineString(self._points_line).project(point)
 
     def valid_move(
         self,
