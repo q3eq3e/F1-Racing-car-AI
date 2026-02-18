@@ -10,6 +10,7 @@ def test_car_init():
     car = CarDynamics()
     for key in car.state:
         assert car.state[key] == 0.0
+    assert len(car.actions) == 3
 
 
 def test_car_max_speed():
@@ -85,6 +86,21 @@ def test_standing_braking_turning():
     for key in car.state:
         assert car.state[key] == 0.0
     car.step(0, 1, 1)
+    for key in car.state:
+        assert car.state[key] == 0.0
+
+
+def test_reset():
+    car = CarDynamics()
+    car.reset()
+    for key in car.state:
+        assert car.state[key] == 0.0
+    car.step(1, 0, 0)
+    car.step(1, 1, 1)
+    car.step(0.2, 0, -1)
+    car.step(0, 0, 0)
+    car.step(0, 0.5, -0.5)
+    car.reset()
     for key in car.state:
         assert car.state[key] == 0.0
 

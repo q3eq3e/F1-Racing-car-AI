@@ -96,10 +96,10 @@ class CarDynamics:
             "rear_slide": self.sliding_rear,
         }
 
-    def step(self, throttle, brake, delta, dt=0.05):
-        if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(delta) > 1:
+    def step(self, throttle, brake, steer, dt=0.05):
+        if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
             raise ValueError("Input values out of range")
-        delta *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
+        steer *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
 
         # --- total speed ---
         v = np.sqrt(self.vx**2 + self.vy**2)
@@ -134,7 +134,7 @@ class CarDynamics:
             alpha_f = 0.0
             alpha_r = 0.0
         else:
-            alpha_f = delta - np.arctan2(vyf, vxf)
+            alpha_f = steer - np.arctan2(vyf, vxf)
             alpha_r = -np.arctan2(vyr, vxr)
 
         # --- lateral forces (linear) ---
@@ -202,6 +202,25 @@ class CarDynamics:
         self.ax = (Fx_f + Fx_r - F_drag - F_roll) / self.mass
 
         return self.state
+
+    def reset(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.yaw = 0.0
+        self.vx = 0.0
+        self.vy = 0.0
+        self.va = 0.0
+        self.ax = 0.0
+        self.sliding_front = False
+        self.sliding_rear = False
+
+    @property
+    def actions(self):
+        return {
+            "throttle": float,
+            "brake": float,
+            "steer": float,
+        }
 
     @property
     def max_speed(self):
