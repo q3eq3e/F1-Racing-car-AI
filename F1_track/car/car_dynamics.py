@@ -96,7 +96,9 @@ class CarDynamics:
             "rear_slide": self.sliding_rear,
         }
 
-    def step(self, throttle, brake, steer, dt=0.05):
+    def step(
+        self, throttle: float, brake: float, steer: float, dt: float = 0.05
+    ) -> dict:
         if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
             raise ValueError("Input values out of range")
         steer *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
@@ -203,7 +205,14 @@ class CarDynamics:
 
         return self.state
 
-    def reset(self):
+    def simple_step(self, throttle: float, steer: float, dt: float = 0.05) -> dict:
+        """Disables throttle and braking at once (negative throttle brakes)"""
+        if throttle >= 0:
+            return self.step(throttle, 0, steer, dt)
+        else:
+            return self.step(0, -throttle, steer, dt)
+
+    def reset(self) -> dict:
         self.x = 0.0
         self.y = 0.0
         self.yaw = 0.0
@@ -213,6 +222,7 @@ class CarDynamics:
         self.ax = 0.0
         self.sliding_front = False
         self.sliding_rear = False
+        return self.state
 
     @property
     def actions(self):

@@ -92,9 +92,9 @@ def test_standing_braking_turning():
 
 def test_reset():
     car = CarDynamics()
-    car.reset()
+    state = car.reset()
     for key in car.state:
-        assert car.state[key] == 0.0
+        assert state[key] == 0.0
     car.step(1, 0, 0)
     car.step(1, 1, 1)
     car.step(0.2, 0, -1)
@@ -103,6 +103,26 @@ def test_reset():
     car.reset()
     for key in car.state:
         assert car.state[key] == 0.0
+
+
+def test_simple_step():
+    car = CarDynamics()
+    car.simple_step(1, 0)
+    car.simple_step(1, 1)
+    assert car.state["x"] > 0
+    assert car.state["y"] > 0
+    assert car.state["vx"] > 0
+    assert car.state["ax"] > 5
+
+    car.reset()
+    car.simple_step(1, 0)
+    car.simple_step(1, 0)
+    car.simple_step(1, 0)
+    car.simple_step(-1, 0)
+    assert car.state["x"] > 0
+    assert car.state["y"] == 0
+    assert car.state["vx"] > 0
+    assert car.state["ax"] < -10
 
 
 def test_losing_grip():
