@@ -1,5 +1,6 @@
 from F1_track.car import CarDynamics
 import pytest
+from shapely import Point
 
 
 def test_config():
@@ -315,12 +316,14 @@ def test_fast_cornering():
 
 def test_set_position():
     car = CarDynamics()
+    assert car.get_position() == Point(0, 0)
     for _ in range(1000):
         car.step(1, 0, 0)
 
     car.step(1, 0, 0.1)
     car.step(1, 0, 0.1)
     car.step(1, 0, 0.1)
+    assert car.get_position() == Point(car.state["x"], car.state["y"])
     for key in car.state:
         match key:
             case "x":
@@ -340,6 +343,7 @@ def test_set_position():
             case _:
                 pass
     car.set_position(-5, -4, 1)
+    assert car.get_position() == Point(-5, -4)
     for key in car.state:
         match key:
             case "x":
