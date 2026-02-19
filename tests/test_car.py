@@ -1,6 +1,7 @@
 from F1_track.car import CarDynamics
 import pytest
 from shapely import Point
+import numpy as np
 
 
 def test_config():
@@ -12,6 +13,7 @@ def test_car_init():
     for key in car.state:
         assert car.state[key] == 0.0
     assert len(car.actions) == 3
+    assert len(car.simple_actions) == 2
 
 
 def test_car_max_speed():
@@ -354,3 +356,24 @@ def test_set_position():
                 assert car.state[key] == 1
             case _:
                 assert car.state[key] == 0
+
+
+def test_oscillations():
+    car = CarDynamics()
+    yaw_rate_directions_changes = 0
+
+    for _ in range(int(350 * 0.05 / car.default_dt)):
+        car.simple_step(1, 0, car.default_dt)
+    for _ in range(int(40 * 0.05 / car.default_dt)):
+        car.simple_step(-0.1, 0.1, car.default_dt)
+    previous_car_yaw_rate = car.state["yaw_rate"]
+    for _ in range(int(200 * 0.05 / car.default_dt)):
+        car.simple_step(-1, 0, car.default_dt)
+        if (
+            np.sign(car.state["yaw_rate"]) != np.sign(previous_car_yaw_rate)
+            and car.state["yaw_rate"] >= 1e-9
+        ):
+            yaw_rate_directions_changes += 1
+        previous_car_yaw_rate = car.state["yaw_rate"]
+
+    assert yaw_rate_directions_changes < 3
