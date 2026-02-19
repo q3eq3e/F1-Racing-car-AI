@@ -4,6 +4,7 @@ from shapely import Point
 
 
 class CarDynamics:
+    default_dt = 0.01
     default_params = {
         "mass": 800,
         "heigth_com": 0.35,
@@ -107,11 +108,18 @@ class CarDynamics:
         self.yaw = np.fmod(angle, 2 * np.pi)
 
     def step(
-        self, throttle: float, brake: float, steer: float, dt: float = 0.05
+        self,
+        throttle: float,
+        brake: float,
+        steer: float,
+        dt: float = None,
     ) -> dict:
+        """Simulates a car move in dt time. Throttle and brakes in [0,1], steer in [-1,1], positive turns left"""
         if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
             raise ValueError("Input values out of range")
         steer *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
+        if dt is None:
+            dt = CarDynamics.default_dt
 
         # --- total speed ---
         v = np.sqrt(self.vx**2 + self.vy**2)
@@ -198,11 +206,13 @@ class CarDynamics:
         dva = (self.L_f * Fy_f - self.L_r * Fy_r) / self.inertia
 
         # --- integration ---
-        self.vx += dvx * dt
+        self.vx = max(
+            self.vx + dvx * dt, 0.0
+        )  # limit not to go backwards (may happen during braking and high dt)
         self.vy += dvy * dt
         self.va += dva * dt
 
-        self.yaw = np.fmod(self.yaw + self.va * dt, 2 * np.pi)
+        self.yaw = np.fmod(self.yaw + self.va * dt + 2 * np.pi, 2 * np.pi)
 
         dx = self.vx * np.cos(self.yaw) - self.vy * np.sin(self.yaw)
         dy = self.vx * np.sin(self.yaw) + self.vy * np.cos(self.yaw)
@@ -239,6 +249,13 @@ class CarDynamics:
         return {
             "throttle": float,
             "brake": float,
+            "steer": float,
+        }
+
+    @property
+    def simple_actions(self):
+        return {
+            "throttle": float,
             "steer": float,
         }
 
@@ -286,37 +303,54 @@ if __name__ == "__main__":
 
     car = CarDynamics()
     print("max_speed [km/h] =", car.max_speed_kmh)
+    xs = []
     ys = []
+    vxs = []
     vys = []
     yaws = []
     yaw_rates = []
     f_slips = []
     r_slips = []
-    timestep = 0.02
-    steps = 100
-    for _ in range(1000):  # speed up
-        car.step(1, 0, 0)
+    timestep = 0.05
 
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    car.step(0, 0, 1, dt=timestep)
-    for _ in range(steps):
-        ys.append(car.state["y"] / 10)
+    for _ in range(int(350 * 0.05 / timestep)):
+        car.simple_step(1, 0, timestep)
+        xs.append(car.state["x"] / 50)
+        ys.append(car.state["y"] / 50)
+        vxs.append(car.state["vx"] / 5)
         vys.append(car.state["vy"])
         yaws.append(car.state["yaw"] * 10)
         yaw_rates.append(car.state["yaw_rate"])
         f_slips.append(20 * car.state["front_slide"])
         r_slips.append(20 * car.state["rear_slide"])
-        car.step(0, 0.1, -0.1, dt=timestep)
+    for _ in range(int(36 * 0.05 / timestep)):
+        car.simple_step(-0.1, 0.1, timestep)
+        xs.append(car.state["x"] / 50)
+        ys.append(car.state["y"] / 50)
+        vxs.append(car.state["vx"] / 5)
+        vys.append(car.state["vy"])
+        yaws.append(car.state["yaw"] * 10)
+        yaw_rates.append(car.state["yaw_rate"])
+        f_slips.append(20 * car.state["front_slide"])
+        r_slips.append(20 * car.state["rear_slide"])
+    for _ in range(int(200 * 0.05 / timestep)):
+        car.simple_step(-1, 0, timestep)
+        xs.append(car.state["x"] / 50)
+        ys.append(car.state["y"] / 50)
+        vxs.append(car.state["vx"] / 5)
+        vys.append(car.state["vy"])
+        yaws.append(car.state["yaw"] * 10)
+        yaw_rates.append(car.state["yaw_rate"])
+        f_slips.append(20 * car.state["front_slide"])
+        r_slips.append(20 * car.state["rear_slide"])
 
-    t = np.arange(0, steps * timestep, timestep) + timestep
+    car.simple_step(-1, 0, timestep)
+    t = np.arange(0, 586 * 0.05, timestep) + timestep
 
+    plt.plot(t, xs, label="x")
     plt.plot(t, ys, label="y")
-    plt.plot(t, vys, label="v")
+    plt.plot(t, vxs, label="vx")
+    plt.plot(t, vys, label="vy")
     plt.plot(t, yaws, label="yaw")
     plt.plot(t, yaw_rates, label="yaw_rate")
     plt.plot(t, f_slips, label="f")
@@ -325,7 +359,7 @@ if __name__ == "__main__":
     # Add labels and title
     plt.xlabel("X Values")
     plt.ylabel("Y Values")
-    plt.title("Line Plot with Three Value Series")
+    plt.title("Too high timestep leads to oscillations")
 
     # Show legend
     plt.legend()
