@@ -112,7 +112,7 @@ class CarDynamics:
         throttle: float,
         brake: float,
         steer: float,
-        dt: float = None,
+        dt: Optional[float] = None,
     ) -> dict:
         """Simulates a car move in dt time. Throttle and brakes in [0,1], steer in [-1,1], positive turns left"""
         if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
@@ -225,8 +225,12 @@ class CarDynamics:
 
         return self.state
 
-    def simple_step(self, throttle: float, steer: float, dt: float = 0.05) -> dict:
+    def simple_step(
+        self, throttle: float, steer: float, dt: Optional[float] = None
+    ) -> dict:
         """Disables throttle and braking at once (negative throttle brakes)"""
+        if dt is None:
+            dt = CarDynamics.default_dt
         if throttle >= 0:
             return self.step(throttle, 0, steer, dt)
         else:
