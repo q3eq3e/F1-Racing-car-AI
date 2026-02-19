@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Optional
+from shapely import Point
 
 
 class CarDynamics:
@@ -95,6 +96,9 @@ class CarDynamics:
             "front_slide": self.sliding_front,
             "rear_slide": self.sliding_rear,
         }
+
+    def get_position(self) -> "Point":
+        return Point(self.x, self.y)
 
     def set_position(self, x, y, angle):
         self.reset()
