@@ -19,6 +19,56 @@ def test_car_max_speed():
     assert car.max_speed_kmh > 180 and car.max_speed_kmh < 540
 
 
+def test_different_setup():
+    setup = {
+        "mass": 700,
+        "heigth_com": 0.25,
+        "distance_axis_f": 2.6,
+        "distance_axis_r": 2.0,
+        "ltr_stiff_f": 250000,
+        "ltr_stiff_r": 280000,
+        "friction": 1.7,
+        "rolling_friction": 0.02,
+        "air_density": 1.225,
+        "front_surf": 1.9,
+        "drag": 1.1,
+        "dwnf_f": 2.1,
+        "dwnf_r": 2.1,
+        "F_max": 8000,
+        "F_brake_max": 15000,
+        "brake_bias": 0.3,
+    }
+    default_car = CarDynamics()
+    my_car = CarDynamics(setup)
+    for key in my_car.state:
+        assert my_car.state[key] == 0.0
+    assert my_car.max_speed != default_car.max_speed
+
+
+def test_incorrect_setup():
+    setup = {
+        "mass": 700,
+        "heigth_com": 0.25,
+        "distance_axis_f": 2.6,
+        "distance_axis_r": 2.0,
+        "wheelbase": 2.0,
+        "ltr_stiff_f": 250000,
+        "ltr_stiff_r": 280000,
+        "friction": 1.7,
+        "rolling_friction": 0.02,
+        "air_density": 1.225,
+        "front_surf": 1.9,
+        "drag": 0.1,
+        "dwnf_f": 2.1,
+        "dwnf_r": 2.1,
+        "F_max": 8000,
+        "F_brake_max": 15000,
+        "brake_bias": 0.3,
+    }
+    with pytest.raises(AssertionError):
+        CarDynamics(setup)
+
+
 def test_straight_move():
     car = CarDynamics()
 
