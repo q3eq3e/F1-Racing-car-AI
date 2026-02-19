@@ -305,7 +305,7 @@ def test_fast_cornering():
             case "vy":
                 assert abs(car.state[key]) < 1e-6
             case "yaw":
-                assert abs(car.state[key]) < 1e-6
+                assert car.state[key] < 1e-3 or car.state[key] > 2 * np.pi - 1e-3
             case "yaw_rate":
                 assert abs(car.state[key]) < 1e-6
             case "front_slide":

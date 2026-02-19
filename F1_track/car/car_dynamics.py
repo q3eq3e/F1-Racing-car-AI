@@ -212,7 +212,7 @@ class CarDynamics:
         self.vy += dvy * dt
         self.va += dva * dt
 
-        self.yaw = np.fmod(self.yaw + self.va * dt, 2 * np.pi)
+        self.yaw = np.fmod(self.yaw + self.va * dt + 2 * np.pi, 2 * np.pi)
 
         dx = self.vx * np.cos(self.yaw) - self.vy * np.sin(self.yaw)
         dy = self.vx * np.sin(self.yaw) + self.vy * np.cos(self.yaw)
