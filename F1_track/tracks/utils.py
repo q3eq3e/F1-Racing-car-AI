@@ -11,16 +11,16 @@ def rotate(xy, angle):
     return np.matmul(xy, rot_mat)
 
 
-def get_finish_line(layout, finish_point) -> LineString:
+def get_line(layout, middle_point) -> LineString:
     """Finds closest points on the inside and outside edges of the track layout to specific point and creates a line"""
-    finish_point = Point(*finish_point)
-    outside_point, _ = nearest_points(layout.exterior, finish_point)
-    inside_point, _ = nearest_points(layout.interiors[0], finish_point)
+    middle_point = Point(*middle_point)
+    outside_point, _ = nearest_points(layout.exterior, middle_point)
+    inside_point, _ = nearest_points(layout.interiors[0], middle_point)
     return LineString([outside_point, inside_point])
 
 
-# def _vector_angle(start_point, end_point):
-#     return np.atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+def vector_angle(start_point, end_point):
+    return np.atan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
 
 
 # def change_side_of_line(start_point, end_point, line_start, line_end):
