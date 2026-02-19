@@ -311,3 +311,42 @@ def test_fast_cornering():
                 assert car.state[key] == False
             case _:
                 pass
+
+
+def test_set_position():
+    car = CarDynamics()
+    for _ in range(1000):
+        car.step(1, 0, 0)
+
+    car.step(1, 0, 0.1)
+    car.step(1, 0, 0.1)
+    car.step(1, 0, 0.1)
+    for key in car.state:
+        match key:
+            case "x":
+                assert car.state[key] > 0
+            case "y":
+                assert car.state[key] > 0
+            case "vy":
+                assert car.state[key] < 0
+            case "yaw":
+                assert car.state[key] > 0
+            case "yaw_rate":
+                assert car.state[key] > 0
+            case "front_slide":
+                assert car.state[key] == False
+            case "rear_slide":
+                assert car.state[key] == False
+            case _:
+                pass
+    car.set_position(-5, -4, 1)
+    for key in car.state:
+        match key:
+            case "x":
+                assert car.state[key] == -5
+            case "y":
+                assert car.state[key] == -4
+            case "yaw":
+                assert car.state[key] == 1
+            case _:
+                assert car.state[key] == 0

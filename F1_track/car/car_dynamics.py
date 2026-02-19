@@ -96,6 +96,12 @@ class CarDynamics:
             "rear_slide": self.sliding_rear,
         }
 
+    def set_position(self, x, y, angle):
+        self.reset()
+        self.x = x
+        self.y = y
+        self.yaw = np.fmod(angle, 2 * np.pi)
+
     def step(
         self, throttle: float, brake: float, steer: float, dt: float = 0.05
     ) -> dict:
