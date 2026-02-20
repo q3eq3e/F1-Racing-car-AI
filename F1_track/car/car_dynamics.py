@@ -115,7 +115,14 @@ class CarDynamics:
         dt: Optional[float] = None,
     ) -> dict:
         """Simulates a car move in dt time. Throttle and brakes in [0,1], steer in [-1,1], positive turns left"""
-        if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
+        if (
+            throttle < 0
+            or throttle > 1
+            or brake < 0
+            or brake > 1
+            or abs(steer) > 1
+            or dt <= 0
+        ):
             raise ValueError("Input values out of range")
         steer *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
         if dt is None:
@@ -212,7 +219,9 @@ class CarDynamics:
         self.vy += dvy * dt
         self.va += dva * dt
 
-        self.yaw = np.fmod(self.yaw + self.va * dt + 2 * np.pi, 2 * np.pi)
+        self.yaw = np.fmod(
+            self.yaw + self.va * dt + 20 * np.pi, 2 * np.pi
+        )  # prevent negative numbers
 
         dx = self.vx * np.cos(self.yaw) - self.vy * np.sin(self.yaw)
         dy = self.vx * np.sin(self.yaw) + self.vy * np.cos(self.yaw)
@@ -315,50 +324,56 @@ if __name__ == "__main__":
     yaw_rates = []
     f_slips = []
     r_slips = []
-    timestep = 0.05
+    timestep = 0.01
 
-    for _ in range(int(350 * 0.05 / timestep)):
-        car.simple_step(1, 0, timestep)
-        xs.append(car.state["x"] / 50)
-        ys.append(car.state["y"] / 50)
-        vxs.append(car.state["vx"] / 5)
-        vys.append(car.state["vy"])
+    for _ in range(10):
+        car.simple_step(0.3, 0.1, timestep)
         yaws.append(car.state["yaw"] * 10)
         yaw_rates.append(car.state["yaw_rate"])
-        f_slips.append(20 * car.state["front_slide"])
-        r_slips.append(20 * car.state["rear_slide"])
-    for _ in range(int(36 * 0.05 / timestep)):
-        car.simple_step(-0.1, 0.1, timestep)
-        xs.append(car.state["x"] / 50)
-        ys.append(car.state["y"] / 50)
-        vxs.append(car.state["vx"] / 5)
-        vys.append(car.state["vy"])
-        yaws.append(car.state["yaw"] * 10)
-        yaw_rates.append(car.state["yaw_rate"])
-        f_slips.append(20 * car.state["front_slide"])
-        r_slips.append(20 * car.state["rear_slide"])
-    for _ in range(int(200 * 0.05 / timestep)):
-        car.simple_step(-1, 0, timestep)
-        xs.append(car.state["x"] / 50)
-        ys.append(car.state["y"] / 50)
-        vxs.append(car.state["vx"] / 5)
-        vys.append(car.state["vy"])
-        yaws.append(car.state["yaw"] * 10)
-        yaw_rates.append(car.state["yaw_rate"])
-        f_slips.append(20 * car.state["front_slide"])
-        r_slips.append(20 * car.state["rear_slide"])
 
-    car.simple_step(-1, 0, timestep)
-    t = np.arange(0, 586 * 0.05, timestep) + timestep
+    # for _ in range(int(350 * 0.05 / timestep)):
+    #     car.simple_step(1, 0, timestep)
+    #     xs.append(car.state["x"] / 50)
+    #     ys.append(car.state["y"] / 50)
+    #     vxs.append(car.state["vx"] / 5)
+    #     vys.append(car.state["vy"])
+    #     yaws.append(car.state["yaw"] * 10)
+    #     yaw_rates.append(car.state["yaw_rate"])
+    #     f_slips.append(20 * car.state["front_slide"])
+    #     r_slips.append(20 * car.state["rear_slide"])
+    # for _ in range(int(36 * 0.05 / timestep)):
+    #     car.simple_step(-0.1, 0.1, timestep)
+    #     xs.append(car.state["x"] / 50)
+    #     ys.append(car.state["y"] / 50)
+    #     vxs.append(car.state["vx"] / 5)
+    #     vys.append(car.state["vy"])
+    #     yaws.append(car.state["yaw"] * 10)
+    #     yaw_rates.append(car.state["yaw_rate"])
+    #     f_slips.append(20 * car.state["front_slide"])
+    #     r_slips.append(20 * car.state["rear_slide"])
+    # for _ in range(int(200 * 0.05 / timestep)):
+    #     car.simple_step(-1, 0, timestep)
+    #     xs.append(car.state["x"] / 50)
+    #     ys.append(car.state["y"] / 50)
+    #     vxs.append(car.state["vx"] / 5)
+    #     vys.append(car.state["vy"])
+    #     yaws.append(car.state["yaw"] * 10)
+    #     yaw_rates.append(car.state["yaw_rate"])
+    #     f_slips.append(20 * car.state["front_slide"])
+    #     r_slips.append(20 * car.state["rear_slide"])
 
-    plt.plot(t, xs, label="x")
-    plt.plot(t, ys, label="y")
-    plt.plot(t, vxs, label="vx")
-    plt.plot(t, vys, label="vy")
+    # car.simple_step(-1, 0, timestep)
+    # t = np.arange(0, 586 * 0.05, timestep) + timestep
+    t = np.arange(0, 0.1, timestep) + timestep
+
+    # plt.plot(t, xs, label="x")
+    # plt.plot(t, ys, label="y")
+    # plt.plot(t, vxs, label="vx")
+    # plt.plot(t, vys, label="vy")
     plt.plot(t, yaws, label="yaw")
     plt.plot(t, yaw_rates, label="yaw_rate")
-    plt.plot(t, f_slips, label="f")
-    plt.plot(t, r_slips, label="r")
+    # plt.plot(t, f_slips, label="f")
+    # plt.plot(t, r_slips, label="r")
 
     # Add labels and title
     plt.xlabel("X Values")

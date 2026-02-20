@@ -220,6 +220,10 @@ def test_out_of_range():
         car.step(0, 0, -2)
     with pytest.raises(ValueError):
         car.step(0, 0, 1.2)
+    with pytest.raises(ValueError):
+        car.step(0, 0, 0, 0)
+    with pytest.raises(ValueError):
+        car.step(0, 0, 1, -0.5)
 
 
 def test_fast_cornering():

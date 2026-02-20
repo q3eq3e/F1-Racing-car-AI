@@ -3,6 +3,23 @@ from ..tracks import Track
 from ..car import CarDynamics
 from .utils import Move
 
+track_names_map = {
+    "Saudi Arabia": "Saudi Arabian",
+    "Australia": "Australian",
+    "China": "Chinese",
+    "Imola": "Emilia Romagna",
+    "Canada": "Canadian",
+    "Spain": "Spanish",
+    "Austria": "Austrian",
+    "Hungary": "Hungarian",
+    "Belgium": "Belgian",
+    "Netherlands": "Dutch",
+    "Italy": "Italian",
+    "US": "United States",
+    "Mexico": "Mexico City",
+    "Brazil": "São Paulo",
+}
+
 
 class CarAgent:
     def __init__(
@@ -13,7 +30,7 @@ class CarAgent:
         car_params: Optional[dict] = None,
         time_delta=0.01,
     ) -> None:
-        # TODO: add dict with simple names
+        track_name = track_names_map.get(track_name, track_name)
         if year == 2024 and track_width == 40:
             self._track = Track.load(track_name)
         else:
@@ -25,6 +42,7 @@ class CarAgent:
 
     @property
     def observation(self) -> dict:
+        # TODO: add more e.g. agent distance or track limits around him
         return self._dynamics.state
 
     @property
@@ -77,6 +95,9 @@ class CarAgent:
 
     def successfully_done(self) -> bool:
         return self.lap_finished
+
+    def is_on_track(self) -> bool:
+        return self._track.contains((self.observation["x"], self.observation["y"]))
 
     def simple_step(self, throttle: float, steer: float):
         prev_point = self._dynamics.get_position()

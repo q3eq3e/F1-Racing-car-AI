@@ -20,10 +20,11 @@ def test_init_defalut():
     assert agent.lap_finished == False
     assert agent.last_move is None
     assert agent.successfully_done() == False
+    assert agent.is_on_track() == True
 
 
 def test_big_distance_at_start():
-    agent = CarAgent("Saudi Arabian")
+    agent = CarAgent("Saudi Arabia")
     assert abs(agent.get_info()["distance"]) < 1e-3
     assert agent.get_info()["time"] == 0
     assert abs(agent.get_info()["percentage"]) < 1e-3
@@ -129,4 +130,83 @@ def test_invalid_cross_sector1():
     assert agent.successfully_done() == False
 
 
-# TODO: add test while completing whole lap and crossing finish line backwards or backwards and frontwards then
+def test_cross_sector2():
+    agent = CarAgent("Mexico City")
+    for _ in range(1760):
+        agent.simple_step(1, 0)
+    for _ in range(330):
+        agent.simple_step(-0.1, -0.1)
+    for _ in range(1000):
+        agent.simple_step(-1, 0)
+    for _ in range(1170):
+        agent.simple_step(1, 0)
+    # for _ in range(1000):
+    #     agent.simple_step(-1, 0)
+    for _ in range(330):
+        agent.simple_step(-0.1, -0.1)
+    for _ in range(1000):
+        agent.simple_step(-1, 0)
+    for _ in range(1050):
+        agent.simple_step(1, 0)
+
+    assert agent.sector1_finished == True
+    assert agent.sector2_finished == True
+    assert agent.lap_finished == False
+    assert agent.successfully_done() == False
+
+
+def test_complete_lap():
+    agent = CarAgent("Mexico City")
+    for _ in range(1760):
+        agent.simple_step(1, 0)
+    for _ in range(330):
+        agent.simple_step(-0.1, -0.1)
+    for _ in range(1000):
+        agent.simple_step(-1, 0)
+    for _ in range(1170):
+        agent.simple_step(1, 0)
+    for _ in range(330):
+        agent.simple_step(-0.1, -0.1)
+    for _ in range(1000):
+        agent.simple_step(-1, 0)
+    for _ in range(1050):
+        agent.simple_step(1, 0)
+
+    for _ in range(150):
+        agent.simple_step(-0.1, 0.1)
+    for _ in range(550):
+        agent.simple_step(1, 0)
+    for _ in range(900):
+        agent.simple_step(-0.1, -0.06)
+    for _ in range(211):
+        agent.simple_step(1, 0)
+
+    assert agent.sector1_finished == True
+    assert agent.sector2_finished == True
+    assert agent.lap_finished == True
+    assert agent.successfully_done() == True
+    assert agent.get_info()["time"] > 60
+    assert agent.get_info()["distance"] < 1
+
+
+def test_cross_line_backwards():
+    agent = CarAgent("Mexico City")
+    crossed_finish_line = False
+    for _ in range(200):
+        agent.simple_step(1, 0)
+    for _ in range(300):
+        agent.simple_step(0.0, 1)
+    assert agent.is_on_track() == False
+    for _ in range(270):
+        agent.simple_step(0.0, 1)
+        if agent._track.cross_finish_line(
+            agent.get_last_move().prev, agent.get_last_move().next
+        ):
+            crossed_finish_line = True
+
+    assert crossed_finish_line == True
+    assert agent.sector1_finished == False
+    assert agent.sector2_finished == False
+    assert agent.lap_finished == False
+    assert agent.successfully_done() == False
+    assert agent.get_info()["distance"] < 10
