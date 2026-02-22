@@ -115,18 +115,13 @@ class CarDynamics:
         dt: Optional[float] = None,
     ) -> dict:
         """Simulates a car move in dt time. Throttle and brakes in [0,1], steer in [-1,1], positive turns left"""
-        if (
-            throttle < 0
-            or throttle > 1
-            or brake < 0
-            or brake > 1
-            or abs(steer) > 1
-            or dt <= 0
-        ):
+        if throttle < 0 or throttle > 1 or brake < 0 or brake > 1 or abs(steer) > 1:
             raise ValueError("Input values out of range")
         steer *= 0.45  # limit front axis angle to about 25 degrees (0.45 rad)
         if dt is None:
             dt = CarDynamics.default_dt
+        if dt <= 0:
+            raise ValueError("Time step has to be positive")
 
         # --- total speed ---
         v = np.sqrt(self.vx**2 + self.vy**2)

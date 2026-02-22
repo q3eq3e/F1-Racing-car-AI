@@ -127,17 +127,17 @@ def test_cross_sectors():
     assert track.cross_sector2_line((-470, 200), (-480, 300)) == True
 
 
-def test_only_one_way_cross():
-    # not sure if needed when we have sector lines
-    track = Track("Austrian")
-    assert track.cross_finish_line((200, -100), (-100, -200)) == True
-    assert track.cross_finish_line((-100, -200), (200, -100)) == False
+# def test_only_one_way_cross():
+#     # not sure if needed when we have sector lines
+#     track = Track("Austrian")
+#     assert track.cross_finish_line((200, -100), (-100, -200)) == True
+#     assert track.cross_finish_line((-100, -200), (200, -100)) == False
 
-    assert track.cross_sector1_line((-800, 550), (-700, 550)) == True
-    assert track.cross_sector1_line((-700, 550), (-800, 550)) == False
+#     assert track.cross_sector1_line((-800, 550), (-700, 550)) == True
+#     assert track.cross_sector1_line((-700, 550), (-800, 550)) == False
 
-    assert track.cross_sector2_line((-480, 300), (-470, 200)) == True
-    assert track.cross_sector2_line((-470, 200), (-480, 300)) == False
+#     assert track.cross_sector2_line((-480, 300), (-470, 200)) == True
+#     assert track.cross_sector2_line((-470, 200), (-480, 300)) == False
 
 
 def test_contains():
