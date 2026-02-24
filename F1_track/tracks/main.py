@@ -9,7 +9,9 @@ if __name__ == "__main__":
         track.save()
         fig, ax = track.plot()
         plt.savefig(f"F1_track/tracks/plots/{idx+1}_{track.name}.png")
+        plt.show()
         plt.close()
+        break
 
     # for idx, event in enumerate(sched.EventName):
     #     event_name = (" ").join(event.split(" ")[:-2])

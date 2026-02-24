@@ -3,7 +3,7 @@ import numpy as np
 
 
 def test_config():
-    assert True == True
+    assert True is True
 
 
 def test_init_defalut():
@@ -15,12 +15,12 @@ def test_init_defalut():
     assert abs(agent.get_info()["distance"]) < 1e-3
     assert agent.get_info()["time"] == 0
     assert abs(agent.get_info()["percentage"]) < 1e-3
-    assert agent.sector1_finished == False
-    assert agent.sector2_finished == False
-    assert agent.lap_finished == False
+    assert agent.sector1_finished is False
+    assert agent.sector2_finished is False
+    assert agent.lap_finished is False
     assert agent.last_move is None
-    assert agent.successfully_done() == False
-    assert agent.is_on_track() == True
+    assert agent.finished() is False
+    assert agent.is_on_track() is True
 
 
 def test_big_distance_at_start():
@@ -28,11 +28,11 @@ def test_big_distance_at_start():
     assert abs(agent.get_info()["distance"]) < 1e-3
     assert agent.get_info()["time"] == 0
     assert abs(agent.get_info()["percentage"]) < 1e-3
-    assert agent.sector1_finished == False
-    assert agent.sector2_finished == False
-    assert agent.lap_finished == False
+    assert agent.sector1_finished is False
+    assert agent.sector2_finished is False
+    assert agent.lap_finished is False
     assert agent.last_move is None
-    assert agent.successfully_done() == False
+    assert agent.finished() is False
 
 
 def test_actions():
@@ -49,7 +49,7 @@ def test_step():
     assert agent.observation["y"] != agent._track.starting_point.y
     assert agent.observation["vx"] != 0
     assert agent.observation["vy"] == 0
-    assert agent.sector1_finished == False
+    assert agent.sector1_finished is False
     assert agent.get_info()["time"] == agent.dt
     assert agent.get_info()["distance"] > 0
     assert agent.get_info()["percentage"] > 0
@@ -63,10 +63,41 @@ def test_simple_step():
     assert agent.observation["y"] != agent._track.starting_point.y
     assert agent.observation["vx"] != 0
     assert agent.observation["vy"] == 0
-    assert agent.sector1_finished == False
+    assert agent.sector1_finished is False
     assert agent.get_info()["time"] == agent.dt
     assert agent.get_info()["distance"] > 0
     assert agent.get_info()["percentage"] > 0
+
+
+# def test_step_return():
+#     agent = CarAgent("Monaco")
+#     obs, reward, finished, _, info = agent.step(1, 0, 0)
+#     assert obs == agent.observation
+#     assert finished == agent.finished()
+#     assert info == agent.get_info()
+#     assert reward == agent._reward()
+
+
+# def test_simple_step_return():
+#     agent = CarAgent("Monaco")
+#     obs, reward, finished, _, info = agent.simple_step(1, 0)
+#     assert obs == agent.observation
+#     assert finished == agent.finished()
+#     assert info == agent.get_info()
+#     assert reward == agent._reward()
+
+
+# def test_reward():
+#     agent = CarAgent("Monaco")
+#     assert agent._reward() < 1e-6 and agent._reward() >= 0
+#     agent.simple_step(1, 0)
+#     assert agent._reward() < -29 and agent._reward() > -61
+#     for _ in range(200):
+#         agent.simple_step(1, 0)
+#     assert agent._reward() > 20
+#     for _ in range(100):
+#         agent.simple_step(1, -1)
+#     assert agent._reward() > 20
 
 
 def test_last_move():
@@ -105,10 +136,10 @@ def test_cross_sector1():
     for _ in range(1000):
         agent.simple_step(-1, 0)
 
-    assert agent.sector1_finished == True
-    assert agent.sector2_finished == False
-    assert agent.lap_finished == False
-    assert agent.successfully_done() == False
+    assert agent.sector1_finished is True
+    assert agent.sector2_finished is False
+    assert agent.lap_finished is False
+    assert agent.finished() is False
 
 
 def test_invalid_cross_sector1():
@@ -124,10 +155,10 @@ def test_invalid_cross_sector1():
     for _ in range(1000):
         agent.simple_step(-1, 0)
 
-    assert agent.sector1_finished == False
-    assert agent.sector2_finished == False
-    assert agent.lap_finished == False
-    assert agent.successfully_done() == False
+    assert agent.sector1_finished is False
+    assert agent.sector2_finished is False
+    assert agent.lap_finished is False
+    assert agent.finished() is False
 
 
 def test_cross_sector2():
@@ -149,10 +180,10 @@ def test_cross_sector2():
     for _ in range(1050):
         agent.simple_step(1, 0)
 
-    assert agent.sector1_finished == True
-    assert agent.sector2_finished == True
-    assert agent.lap_finished == False
-    assert agent.successfully_done() == False
+    assert agent.sector1_finished is True
+    assert agent.sector2_finished is True
+    assert agent.lap_finished is False
+    assert agent.finished() is False
 
 
 def test_complete_lap():
@@ -181,10 +212,10 @@ def test_complete_lap():
     for _ in range(211):
         agent.simple_step(1, 0)
 
-    assert agent.sector1_finished == True
-    assert agent.sector2_finished == True
-    assert agent.lap_finished == True
-    assert agent.successfully_done() == True
+    assert agent.sector1_finished is True
+    assert agent.sector2_finished is True
+    assert agent.lap_finished is True
+    assert agent.finished() is True
     assert agent.get_info()["time"] > 60
     assert agent.get_info()["distance"] < 1
 
@@ -196,7 +227,7 @@ def test_cross_line_backwards():
         agent.simple_step(1, 0)
     for _ in range(300):
         agent.simple_step(0.0, 1)
-    assert agent.is_on_track() == False
+    assert agent.is_on_track() is False
     for _ in range(270):
         agent.simple_step(0.0, 1)
         if agent._track.cross_finish_line(
@@ -204,9 +235,9 @@ def test_cross_line_backwards():
         ):
             crossed_finish_line = True
 
-    assert crossed_finish_line == True
-    assert agent.sector1_finished == False
-    assert agent.sector2_finished == False
-    assert agent.lap_finished == False
-    assert agent.successfully_done() == False
+    assert crossed_finish_line is True
+    assert agent.sector1_finished is False
+    assert agent.sector2_finished is False
+    assert agent.lap_finished is False
+    assert agent.finished() is False
     assert agent.get_info()["distance"] < 10
