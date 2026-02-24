@@ -1,47 +1,50 @@
-from enum import Enum
 import gymnasium as gym
 from gymnasium import spaces
 import pygame
 import numpy as np
+from ..agent.car_agent import CarAgent
 
-# może zrobić enuma ze 1 to steering, 2 throttle 3 braking?
-# class Actions(Enum):
-#     right = 0
-#     up = 1
-#     left = 2
-#     down = 3
 
 # https://gymnasium.farama.org/introduction/create_custom_env/
 # https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/
 class F1Track(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, track='Austria'):
-        self.track = track  # The name of a circuit
-        # self.track = Tracks.get(track)  # getting a polygon object
-        assert track == 'Austria'
+    def __init__(self, render_mode=None, track_name="Austria", simple_mode=True):
+        self.agent = CarAgent(track_name)
+        self.terminated = False
+        self.simple_mode = simple_mode
 
-        self.window_size = 512  # The size of the PyGame window
+        self.observation_space = spaces.Dict(
+            {
+                "x": spaces.Box(low=-np.inf, high=np.inf, dtype=np.float32),
+                "y": spaces.Box(low=-np.inf, high=np.inf, dtype=np.float32),
+                "vx": spaces.Box(low=0, high=np.inf, dtype=np.float32),
+                "vy": spaces.Box(low=-np.inf, high=np.inf, dtype=np.float32),
+                "yaw": spaces.Box(low=0, high=2 * np.pi, dtype=np.float32),
+                "yaw_rate": spaces.Box(low=-np.inf, high=np.inf, dtype=np.float32),
+                "ax": spaces.Box(low=-np.inf, high=np.inf, dtype=np.float32),
+                "front_slide": spaces.MultiBinary(1),
+                "rear_slide": spaces.MultiBinary(1),
+                "dist": spaces.Box(
+                    low=0, high=self.agent._track.length, dtype=np.float32
+                ),
+                # TODO: add more maybe distances at angles
+            }
+        )
 
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2,
-        # i.e. MultiDiscrete([size, size]).
-        self.observation_space = spaces.Box(0, self.window_size - 1, shape=(2,), dtype=int) # TODO: add a lot more maybe as a dict
-
-        # TODO: more possible later
-        self.action_space = spaces.Box(low=np.array([-45., 0., 0.]), high=np.array([45., 1., 1.]), dtype=np.float32)
-
-        # """
-        # The following dictionary maps abstract actions from `self.action_space` to 
-        # the direction we will walk in if that action is taken.
-        # i.e. 0 corresponds to "right", 1 to "up" etc.
-        # """
-        # self._action_to_direction = {
-        #     Actions.right.value: np.array([1, 0]),
-        #     Actions.up.value: np.array([0, 1]),
-        #     Actions.left.value: np.array([-1, 0]),
-        #     Actions.down.value: np.array([0, -1]),
-        # }
+        if simple_mode:
+            self.action_space = spaces.Box(
+                low=np.array([-1.0, -1.0]),
+                high=np.array([1.0, 1.0]),
+                dtype=np.float32,
+            )
+        else:
+            self.action_space = spaces.Box(
+                low=np.array([0.0, 0.0, -1.0]),
+                high=np.array([1.0, 1.0, 1.0]),
+                dtype=np.float32,
+            )
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -53,33 +56,23 @@ class F1Track(gym.Env):
         human-mode. They will remain `None` until human-mode is used for the
         first time.
         """
+        self.window_size = 512  # The size of the PyGame window
         self.window = None
         self.clock = None
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location}
+        # TODO: add more e.g. distance, track limits around him at different angles
+        return self.agent.observation | {"dist": self.agent.get_info()["distance"]}
 
     def _get_info(self):
-        return {
-            "distance": np.linalg.norm(
-                self._agent_location - self._target_location, ord=1
-            )
-        }
+        return self.agent.get_info()
 
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        # Choose the agent's location uniformly at random
-        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
-
-        # We will sample the target's location randomly until it does not
-        # coincide with the agent's location
-        self._target_location = self._agent_location
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(
-                0, self.size, size=2, dtype=int
-            )
+        self.agent.reset()
+        self.terminated = False
 
         observation = self._get_obs()
         info = self._get_info()
@@ -89,23 +82,50 @@ class F1Track(gym.Env):
 
         return observation, info
 
-    def step(self, action):
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
-        direction = self._action_to_direction[action]
-        # We use `np.clip` to make sure we don't leave the grid
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
+    def _terminated(self):
+        if self.agent.last_move is not None:
+            if not self.agent._track.valid_move(
+                self.agent.last_move.prev, self.agent.last_move.next
+            ):
+                self.terminated = True
+                return True
+
+    def _reward(self):
+        if self.terminated:
+            return 0
+        if self.agent.finished():
+            return 1000
+        penalty_out_of_track = int(not (self.agent.is_on_track())) * 100
+        penalty_slide = 50 * int(self._get_obs()["front_slide"]) + 30 * int(
+            self._get_obs()["rear_slide"]
         )
-        # An episode is done iff the agent has reached the target
-        terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+        reward = -penalty_out_of_track - penalty_slide
+        reward += self.agent.sector1_finished * 100
+        reward += self.agent.sector2_finished * 100
+        reward += self._get_info()["percentage"] * 100
+        reward += self._get_obs()["vx"]
+        reward -= self._get_obs()["yaw_rate"] * 10
+        return reward
+
+    def step(self, throttle, steer, brake=None):
+        if self.simple_mode:
+            self.agent.simple_step(throttle, steer)
+        else:
+            if brake is None:
+                raise ValueError("Missing brake argument")
+            self.agent.step(throttle, brake, steer)
+
+        terminated = self._terminated()
+        finished = self.agent.finished()
         observation = self._get_obs()
         info = self._get_info()
+        reward = self._reward()
 
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, reward, terminated, False, info
+        # TODO: what should be the 4th value?? [index 3]
+        return observation, reward, finished, terminated, info
 
     def render(self):
         if self.render_mode == "rgb_array":

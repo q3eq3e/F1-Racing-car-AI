@@ -42,7 +42,6 @@ class CarAgent:
 
     @property
     def observation(self) -> dict:
-        # TODO: add more e.g. distance, track limits around him at different angles
         return self._dynamics.state
 
     @property
@@ -64,6 +63,9 @@ class CarAgent:
             "time": self.time,
             "distance": dist,
             "percentage": dist / self._track.length,
+            "finished_sectors": self.sector1_finished
+            + self.sector2_finished
+            + self.lap_finished,
         }
 
     def reset(self) -> None:
@@ -116,23 +118,3 @@ class CarAgent:
 
         self.time = round(self.time + self.dt, 3)
         self._check_finished_sectors(self.last_move)
-
-    # def _reward(self):
-    #     if self.finished():
-    #         return 1000
-    #     if self.last_move is not None:
-    #         penalty_cutting = int(
-    #             not (self._track.valid_move(self.last_move.prev, self.last_move.next))
-    #         )
-    #     else:
-    #         penalty_cutting = 0
-    #     penalty_out_of_track = int(not (self.is_on_track())) * 100
-    #     penalty_slide = 50 * int(self.observation["front_slide"]) + 30 * int(
-    #         self.observation["rear_slide"]
-    #     )
-    #     reward = -penalty_cutting - penalty_out_of_track - penalty_slide
-    #     reward += self.sector1_finished * 100
-    #     reward += self.sector2_finished * 100
-    #     reward += self.get_info()["percentage"] * 100
-    #     reward += self.observation["vx"]
-    #     return reward

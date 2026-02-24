@@ -14,6 +14,7 @@ def test_init_defalut():
     assert agent.observation["vx"] == 0
     assert abs(agent.get_info()["distance"]) < 1e-3
     assert agent.get_info()["time"] == 0
+    assert agent.get_info()["finished_sectors"] == 0
     assert abs(agent.get_info()["percentage"]) < 1e-3
     assert agent.sector1_finished is False
     assert agent.sector2_finished is False
@@ -194,23 +195,28 @@ def test_complete_lap():
         agent.simple_step(-0.1, -0.1)
     for _ in range(1000):
         agent.simple_step(-1, 0)
+    assert agent.get_info()["finished_sectors"] == 0
     for _ in range(1170):
         agent.simple_step(1, 0)
+    assert agent.get_info()["finished_sectors"] == 1
     for _ in range(330):
         agent.simple_step(-0.1, -0.1)
     for _ in range(1000):
         agent.simple_step(-1, 0)
     for _ in range(1050):
         agent.simple_step(1, 0)
-
+    assert agent.get_info()["finished_sectors"] == 2
     for _ in range(150):
         agent.simple_step(-0.1, 0.1)
     for _ in range(550):
         agent.simple_step(1, 0)
     for _ in range(900):
         agent.simple_step(-0.1, -0.06)
-    for _ in range(211):
+    for _ in range(210):
         agent.simple_step(1, 0)
+    assert agent.get_info()["finished_sectors"] == 2
+    agent.simple_step(1, 0)
+    assert agent.get_info()["finished_sectors"] == 3
 
     assert agent.sector1_finished is True
     assert agent.sector2_finished is True
