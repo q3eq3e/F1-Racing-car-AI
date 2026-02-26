@@ -12,7 +12,7 @@ class F1Track(gym.Env):
 
     def __init__(self, render_mode=None, track_name="Austria", simple_mode=True):
         self.agent = CarAgent(track_name)
-        self.terminated = False
+        self.truncated = False
         self.simple_mode = simple_mode
 
         self.observation_space = spaces.Dict(
@@ -71,8 +71,9 @@ class F1Track(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
+        # seeding problem - use self.np_random
         self.agent.reset()
-        self.terminated = False
+        self.truncated = False
 
         observation = self._get_obs()
         info = self._get_info()
@@ -82,16 +83,16 @@ class F1Track(gym.Env):
 
         return observation, info
 
-    def _terminated(self):
+    def _truncated(self):
         if self.agent.last_move is not None:
             if not self.agent._track.valid_move(
                 self.agent.last_move.prev, self.agent.last_move.next
             ):
-                self.terminated = True
+                self.truncated = True
                 return True
 
     def _reward(self):
-        if self.terminated:
+        if self.truncated:
             return 0
         if self.agent.finished():
             return 1000
@@ -116,7 +117,7 @@ class F1Track(gym.Env):
                 raise ValueError("Missing brake argument")
             self.agent.step(throttle, brake, steer)
 
-        terminated = self._terminated()
+        truncated = self._truncated()
         finished = self.agent.finished()
         observation = self._get_obs()
         info = self._get_info()
@@ -125,8 +126,7 @@ class F1Track(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        # TODO: what should be the 4th value?? [index 3]
-        return observation, reward, finished, terminated, info
+        return observation, reward, finished, truncated, info
 
     def render(self):
         if self.render_mode == "rgb_array":
