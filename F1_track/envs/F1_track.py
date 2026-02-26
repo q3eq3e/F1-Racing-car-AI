@@ -105,6 +105,7 @@ class F1Track(gym.Env):
         reward += self._get_info()["percentage"] * 100
         reward += self._get_obs()["vx"]
         reward -= self._get_obs()["yaw_rate"] * 10
+        reward -= self._get_info()["time"]
         return reward
 
     def step(self, throttle, steer, brake=None):
